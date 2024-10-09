@@ -57,6 +57,14 @@ public class CalculateAverage_azzu {
     }
 
     public static void main() throws IOException, ExecutionException, InterruptedException {
+        /*
+         * 파일 사이즈를 프로세서의 갯수 만큼 나누어 할당하여 읽어서 처리하게 한다.
+         *
+         * fileSize : 전체 파일 사이즈
+         * processors : 코어의 갯수
+         * readSegmentSize : Integer의 최대값과 파일사이즈르 CPU코어 갯수로 나눈것 중 작은값)
+         * numOfSection : 파일 사이즈를 코어당 읽을 크기로 나눈 값(대부분의 경우 CPU 코어 갯수)
+         */
         long fileSize = new File(FILE).length();
         System.out.println(MessageFormat.format("FILE SIZE: {0} bytes", fileSize));
         int processors = Runtime.getRuntime().availableProcessors();
@@ -65,9 +73,15 @@ public class CalculateAverage_azzu {
         int numOfSection = (int) (fileSize / readSegmentSize);
         System.out.println(MessageFormat.format("{0} bytes per read, {1} sections", readSegmentSize, numOfSection));
 
+        /*
+         * ThreadPool을 CPU 코어 갯수만큼 할당한다.
+         */
         ExecutorService executorService = Executors.newFixedThreadPool(processors);
         List<CompletableFuture<Map<String, Measurement>>> futures = new ArrayList<>();
 
+        /*
+         * 읽을 섹션 만큼 loop 실행하여 비동기 CompletableFuture 생성하여 List에 담는다.
+         */
         for (int i = 0; i < numOfSection; i++) {
             long byteStart = (long) i * readSegmentSize;
             long byteEnd = Math.min(fileSize, (byteStart + readSegmentSize + 100));
@@ -129,9 +143,8 @@ public class CalculateAverage_azzu {
         while ((currByte = mappedByteBuffer.get()) != ';') {
             bytes[byteCount++] = currByte;
         }
-        String val = new String(bytes, 0, byteCount, StandardCharsets.UTF_8);
         // System.out.println("STATION: " + val);
-        return val;
+        return new String(bytes, 0, byteCount, StandardCharsets.UTF_8);
     }
 
     private static float getTemperature(final MappedByteBuffer mappedByteBuffer) {
