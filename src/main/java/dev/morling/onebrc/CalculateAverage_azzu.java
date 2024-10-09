@@ -73,35 +73,35 @@ public class CalculateAverage_azzu {
             long byteEnd = Math.min(fileSize, (byteStart + readSegmentSize + 100));
 
             // System.out.println("[" + i +"] START : " + byteStart + ", END : " + (byteEnd - byteStart));
-            CompletableFuture<Map<String, Measurement>> completableFuture;
-            try (FileChannel fileChannel = (FileChannel) Files.newByteChannel(new File(FILE).toPath(), StandardOpenOption.READ)) {
+            FileChannel fileChannel = (FileChannel) Files.newByteChannel(new File(FILE).toPath(), StandardOpenOption.READ);
 
-                completableFuture = CompletableFuture.supplyAsync(() -> {
-                    MappedByteBuffer mappedByteBuffer;
-                    try {
-                        mappedByteBuffer = fileChannel.map(MapMode.READ_ONLY, byteStart, (byteEnd - byteStart));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+            CompletableFuture<Map<String, Measurement>> completableFuture = CompletableFuture.supplyAsync(() -> {
+                MappedByteBuffer mappedByteBuffer;
+                try {
+                    mappedByteBuffer = fileChannel.map(MapMode.READ_ONLY, byteStart, (byteEnd - byteStart));
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
 
-                    if (byteStart > 0) {
-                        while (mappedByteBuffer.get() != '\n')
-                            ;
-                    }
+                if (byteStart > 0) {
+                    while (mappedByteBuffer.get() != '\n')
+                        ;
+                }
 
-                    Map<String, Measurement> measurements = new HashMap<>();
-                    while (mappedByteBuffer.position() < readSegmentSize) {
-                        String station = getStation(mappedByteBuffer);
-                        float temperature = getTemperature(mappedByteBuffer);
-                        if (measurements.containsKey(station)) {
-                            measurements.get(station).add(temperature);
-                        } else {
-                            measurements.put(station, new Measurement(temperature));
-                        }
+                Map<String, Measurement> measurements = new HashMap<>();
+                while (mappedByteBuffer.position() < readSegmentSize) {
+                    String station = getStation(mappedByteBuffer);
+                    float temperature = getTemperature(mappedByteBuffer);
+                    if (measurements.containsKey(station)) {
+                        measurements.get(station).add(temperature);
                     }
-                    return measurements;
-                }, executorService);
-            }
+                    else {
+                        measurements.put(station, new Measurement(temperature));
+                    }
+                }
+                return measurements;
+            }, executorService);
             futures.add(completableFuture);
         }
 
